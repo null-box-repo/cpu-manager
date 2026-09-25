@@ -1,0 +1,10 @@
+id=cpu-manager
+name=CPU Manager
+icon=icon.jpg
+description=Extracting/Flashing Android system partition images.
+author=YasserNull
+version=v1.0.0
+versionCode=1
+repository=https://github.com/null-box-repo/cpu-manager
+install=setup.sh
+permission=root
