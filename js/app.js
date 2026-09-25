@@ -1,5 +1,8 @@
-// CPU Manager UI logic
+// CPU Tuner UI logic
 const $ = (s, r) => (r || document).querySelector(s);
+
+const CPUDIV = 1000;
+const GPUDIV = 1e6;
 
 const fmtFreq = (v, div) => {
   if (v == null) return '-';
@@ -8,6 +11,18 @@ const fmtFreq = (v, div) => {
   return Math.round(mhz) + ' MHz';
 };
 const pin = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function setPage(name) {
+  document.querySelectorAll('.tab').forEach(t => {
+    const on = t.dataset.page === name;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on);
+  });
+  $('#page-cpu').hidden = name !== 'cpu';
+  $('#page-gpu').hidden = name !== 'gpu';
+}
+document.querySelectorAll('.tab').forEach(t =>
+  t.addEventListener('click', () => setPage(t.dataset.page)));
 
 function govOpts(list, cur) {
   const all = list.length ? [...new Set(list)] : [cur].filter(Boolean);
@@ -28,18 +43,16 @@ function meterW(min, max, cur) {
   return pin(((cur - min) / (max - min)) * 100, 0, 100);
 }
 
-function cardHTML(c, animate) {
-  const div = 1000;
+function cardHTML(c) {
   const opts = c.freqs.length ? c.freqs : [c.rmin, c.rmax].filter(v => v != null);
   const cores = (c.cores || []).map(n => 'CPU ' + n).join(', ') || '?';
-  const delay = animate ? 'style="--d:' + c.id * 70 + 'ms"' : '';
-  return `<article class="card" data-id="${c.id}" ${delay}>
+  return `<article class="card" data-id="${c.id}">
     <header>
       <div>
         <span class="num">Cluster ${c.id}</span>
         <span class="sub">${cores}</span>
       </div>
-      <span class="freq" data-cur>${fmtFreq(c.cur, div)}</span>
+      <span class="freq" data-cur>${fmtFreq(c.cur, CPUDIV)}</span>
     </header>
     <div class="meter"><i data-meter style="width:${meterW(c.min, c.max, c.cur)}%"></i></div>
     <div class="row">
@@ -49,11 +62,39 @@ function cardHTML(c, animate) {
     <div class="row split">
       <div>
         <label>Min</label>
-        <div class="sel"><select data-k="min">${freqOpts(opts, c.min, div)}</select></div>
+        <div class="sel"><select data-k="min">${freqOpts(opts, c.min, CPUDIV)}</select></div>
       </div>
       <div>
         <label>Max</label>
-        <div class="sel"><select data-k="max">${freqOpts(opts, c.max, div)}</select></div>
+        <div class="sel"><select data-k="max">${freqOpts(opts, c.max, CPUDIV)}</select></div>
+      </div>
+    </div>
+  </article>`;
+}
+
+function gpuCardHTML(g) {
+  const opts = g.freqs.length ? g.freqs : [g.min, g.max].filter(v => v != null);
+  return `<article class="card">
+    <header>
+      <div>
+        <span class="num">GPU core</span>
+        <span class="sub">governor &amp; frequency control</span>
+      </div>
+      <span class="freq" data-gcur>${fmtFreq(g.cur, GPUDIV)}</span>
+    </header>
+    <div class="meter"><i data-gmeter style="width:${meterW(g.min, g.max, g.cur)}%"></i></div>
+    <div class="row">
+      <label>Governor</label>
+      <div class="sel"><select data-gk="governor">${govOpts(g.governors, g.governor)}</select></div>
+    </div>
+    <div class="row split">
+      <div>
+        <label>Min</label>
+        <div class="sel"><select data-gk="min">${freqOpts(opts, g.min, GPUDIV)}</select></div>
+      </div>
+      <div>
+        <label>Max</label>
+        <div class="sel"><select data-gk="max">${freqOpts(opts, g.max, GPUDIV)}</select></div>
       </div>
     </div>
   </article>`;
@@ -77,6 +118,7 @@ async function api(path, body) {
 }
 
 const KEYS = { governor: 'governor', min: 'min_freq', max: 'max_freq' };
+const GKEYS = { governor: 'gpu_governor', min: 'gpu_min_freq', max: 'gpu_max_freq' };
 
 async function apply(key, value, cluster) {
   const d = await api('/api/set', { key, value, cluster });
@@ -106,25 +148,57 @@ async function loadStatus() {
   }
 }
 
-function render(s) {
-  const clusters = s.clusters || [];
+function renderCpu(clusters) {
   $('#stat-cores').textContent = clusters.length || '-';
   $('#stat-gov').textContent = clusters.length ? (clusters[0].governor || '-') : '-';
-  $('#stat-cpu').textContent = clusters.length ? fmtFreq(clusters[0].cur, 1000) : '-';
-  $('#cores').innerHTML = clusters.map(c => cardHTML(c, false)).join('');
+  $('#stat-cpu').textContent = clusters.length ? fmtFreq(clusters[0].cur, CPUDIV) : '-';
+  $('#cores').innerHTML = clusters.map(c => cardHTML(c)).join('');
+}
+
+function renderGpu(g) {
+  const box = $('#gpu');
+  if (!g || !g.present) {
+    box.innerHTML = '';
+    $('#gpu-empty').hidden = false;
+    $('#gstat-gov').textContent = '-';
+    $('#gstat-clock').textContent = '-';
+    $('#gstat-levels').textContent = '-';
+    return;
+  }
+  $('#gpu-empty').hidden = true;
+  $('#gstat-gov').textContent = g.governor || '-';
+  $('#gstat-clock').textContent = fmtFreq(g.cur, GPUDIV);
+  $('#gstat-levels').textContent = g.freqs.length || '-';
+  box.innerHTML = gpuCardHTML(g);
+}
+
+function render(s) {
+  renderCpu(s.clusters || []);
+  renderGpu(s.gpu);
 }
 
 function liveUpdate(s) {
   const clusters = s.clusters || [];
-  $('#stat-cpu').textContent = clusters.length ? fmtFreq(clusters[0].cur, 1000) : '-';
+  $('#stat-cpu').textContent = clusters.length ? fmtFreq(clusters[0].cur, CPUDIV) : '-';
   clusters.forEach(c => {
     const card = $('#cores .card[data-id="' + c.id + '"]');
     if (!card) return;
     const cur = $('[data-cur]', card);
-    if (cur) cur.textContent = fmtFreq(c.cur, 1000);
+    if (cur) cur.textContent = fmtFreq(c.cur, CPUDIV);
     const meter = $('[data-meter]', card);
     if (meter) meter.style.width = meterW(c.min, c.max, c.cur) + '%';
   });
+  const g = s.gpu;
+  if (g && g.present) {
+    $('#gstat-clock').textContent = fmtFreq(g.cur, GPUDIV);
+    const card = $('#gpu .card');
+    if (card) {
+      const cur = $('[data-gcur]', card);
+      if (cur) cur.textContent = fmtFreq(g.cur, GPUDIV);
+      const meter = $('[data-gmeter]', card);
+      if (meter) meter.style.width = meterW(g.min, g.max, g.cur) + '%';
+    }
+  }
 }
 
 async function poll() {
@@ -151,6 +225,18 @@ $('#cores').addEventListener('change', async (e) => {
   const id = +sel.closest('.card').dataset.id;
   fizzle(sel);
   if (await apply(key, sel.value, id)) {
+    const s = await loadStatus();
+    if (s) render(s);
+  }
+});
+
+$('#gpu').addEventListener('change', async (e) => {
+  const sel = e.target.closest('select[data-gk]');
+  if (!sel) return;
+  const key = GKEYS[sel.dataset.k];
+  if (!key) return;
+  fizzle(sel);
+  if (await apply(key, sel.value)) {
     const s = await loadStatus();
     if (s) render(s);
   }

@@ -32,7 +32,7 @@ else
     apk add gcc && echo -e "${GREEN}[4/5] gcc installed successfully${NC}"
 fi
 
-echo -e "${BLUE}[5/5] Building cpuset...${NC}"
-gcc -O2 -o cpuset c/cpuset.c && echo -e "${GREEN}[5/5] cpuset built successfully${NC}"
+echo -e "${BLUE}[5/5] Building cputuner...${NC}"
+gcc -O2 -o cputuner c/cputuner.c && echo -e "${GREEN}[5/5] cputuner built successfully${NC}"
 
 echo -e "${GREEN}All done.${NC}"

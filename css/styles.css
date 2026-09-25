@@ -1,4 +1,4 @@
-/* CPU Manager styles */
+/* CPU Tuner styles */
 :root {
   --bg: #0a0e14;
   --panel: #0f141d;
@@ -54,7 +54,48 @@ body {
 .conn.on .dot { background: var(--acc); box-shadow: 0 0 8px var(--acc); animation: blink 2s infinite; }
 .conn.off .dot { background: #ff5566; box-shadow: 0 0 8px #ff5566; }
 
-main { max-width: 1000px; margin: 0 auto; padding: 84px 18px 48px; }
+.tabs {
+  position: fixed;
+  top: 51px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px 11px;
+  background: rgba(13,18,25,.78);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.tab {
+  min-width: 120px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: .3px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s, box-shadow .2s, transform .2s;
+}
+.tab:hover { color: var(--text); border-color: rgba(77,240,208,.4); }
+.tab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(77,240,208,.2); }
+.tab:active { transform: scale(.97); }
+.tab.active {
+  color: #06131a;
+  background: linear-gradient(90deg, var(--acc), var(--acc2));
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(77,240,208,.25);
+}
+
+.page { animation: rise .4s ease both; }
+.page[hidden] { display: none; }
+
+main { max-width: 1000px; margin: 0 auto; padding: 136px 18px 48px; }
 
 .banner {
   margin-bottom: 18px;
@@ -165,6 +206,8 @@ main { max-width: 1000px; margin: 0 auto; padding: 84px 18px 48px; }
 
 .card .sel select { text-align: left; }
 
+.empty { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
+
 .toast {
   position: fixed;
   bottom: 24px;
@@ -196,7 +239,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 84px 18px 48px; }
 @media (max-width: 620px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .brand p { display: none; }
-  main { padding-top: 74px; }
+  main { padding-top: 126px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

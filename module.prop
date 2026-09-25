@@ -1,10 +1,10 @@
-id=cpu-manager
-name=CPU Manager
+id=cpu-tuner
+name=CPU Tuner
 icon=icon.jpg
 description=Extracting/Flashing Android system partition images.
 author=YasserNull
 version=v1.0.0
 versionCode=1
-repository=https://github.com/null-box-repo/cpu-manager
+repository=https://github.com/modules-box-repo/cpu-tuner
 install=setup.sh
 permission=root

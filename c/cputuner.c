@@ -1,18 +1,18 @@
 /*
- * cpuset.c - per-cluster CPU governor/frequency control for Android.
+ * cputuner.c - per-cluster CPU governor/frequency control for Android.
  * Requires root. Clusters are detected via related_cpus; cores in a
  * cluster share one clock, so tuning is applied per cluster.
  *
- *   ./cpuset --list clusters
- *   ./cpuset --set governor <name>   [--cluster N]
- *   ./cpuset --set min_freq <khz>    [--cluster N]
- *   ./cpuset --set max_freq <khz>    [--cluster N]
+ *   ./cputuner --list clusters
+ *   ./cputuner --set governor <name>   [--cluster N]
+ *   ./cputuner --set min_freq <khz>    [--cluster N]
+ *   ./cputuner --set max_freq <khz>    [--cluster N]
  *
- *   ./cpuset --list gpu_governor
- *   ./cpuset --list gpu_freq
- *   ./cpuset --set gpu_governor <name>
- *   ./cpuset --set gpu_min_freq <hz>
- *   ./cpuset --set gpu_max_freq <hz>
+ *   ./cputuner --list gpu_governor
+ *   ./cputuner --list gpu_freq
+ *   ./cputuner --set gpu_governor <name>
+ *   ./cputuner --set gpu_min_freq <hz>
+ *   ./cputuner --set gpu_max_freq <hz>
  *
  * No --cluster: applies to all clusters.
  */
