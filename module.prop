@@ -1,7 +1,7 @@
 id=cpu-tuner
 name=CPU Tuner
 icon=icon.jpg
-description=Extracting/Flashing Android system partition images.
+description=CPU frequency & governor tuner.
 author=YasserNull
 version=v1.0.0
 versionCode=1

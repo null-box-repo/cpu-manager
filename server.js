@@ -20,10 +20,7 @@ const FILES = ['/index.html', '/css/styles.css', '/js/app.js'];
 const SET = {
   governor: ['--set', 'governor'],
   min_freq: ['--set', 'min_freq'],
-  max_freq: ['--set', 'max_freq'],
-  gpu_governor: ['--set', 'gpu_governor'],
-  gpu_min_freq: ['--set', 'gpu_min_freq'],
-  gpu_max_freq: ['--set', 'gpu_max_freq']
+  max_freq: ['--set', 'max_freq']
 };
 
 const NAME_RE = /^[a-zA-Z0-9_-]+$/;
@@ -53,40 +50,8 @@ function readBody(req) {
   });
 }
 
-async function getGpuStatus() {
-  const [rg, rf] = await Promise.all([
-    run(['--list', 'gpu_governor']),
-    run(['--list', 'gpu_freq'])
-  ]);
-  const gpu = { governors: [], governor: '', freqs: [], min: null, max: null, cur: null, present: false, errors: [] };
-  const errors = [];
-  for (const r of [rg, rf]) {
-    if (r.err) { errors.push((r.stderr || r.err.message).trim()); continue; }
-    for (const line of r.stdout.split('\n')) {
-      let m = line.match(/^GPU available governors: (.+)$/);
-      if (m) { gpu.governors = m[1].trim().split(/\s+/).filter(Boolean); continue; }
-      m = line.match(/^GPU governor: (.+)$/);
-      if (m) { gpu.governor = m[1].trim(); continue; }
-      m = line.match(/^GPU available frequencies \(Hz\): (.+)$/);
-      if (m) { gpu.freqs = m[1].trim().split(/\s+/).map(Number); continue; }
-      m = line.match(/^GPU min: (\d+) Hz$/);
-      if (m) { gpu.min = +m[1]; continue; }
-      m = line.match(/^GPU max: (\d+) Hz$/);
-      if (m) { gpu.max = +m[1]; continue; }
-      m = line.match(/^GPU cur: (\d+) Hz$/);
-      if (m) { gpu.cur = +m[1]; }
-    }
-  }
-  gpu.present = gpu.governors.length > 0 || gpu.freqs.length > 0;
-  gpu.errors = gpu.present ? errors : [];
-  return gpu;
-}
-
 async function getStatus() {
-  const [r, gpu] = await Promise.all([
-    run(['--list', 'clusters']),
-    getGpuStatus()
-  ]);
+  const r = await run(['--list', 'clusters']);
   const clusters = [];
   let cur = null;
   for (const line of r.stdout.split('\n')) {
@@ -116,7 +81,6 @@ async function getStatus() {
   return {
     ok: errors.length === 0,
     clusters,
-    gpu,
     errors
   };
 }

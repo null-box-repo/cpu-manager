@@ -21,49 +21,18 @@
       <p>governor &amp; frequency control</p>
     </div>
   </div>
-  <div class="toolbar-side">
-    <span class="conn" id="conn"><i class="dot"></i></span>
-  </div>
 </header>
-
-<nav class="tabs" role="tablist">
-  <button class="tab active" id="tab-cpu" role="tab" data-page="cpu" aria-selected="true">CPU</button>
-  <button class="tab" id="tab-gpu" role="tab" data-page="gpu" aria-selected="false">GPU</button>
-</nav>
 
 <main>
   <section class="banner" id="banner" hidden></section>
 
   <section class="page" id="page-cpu">
-    <section class="stats">
-      <div class="stat"><span>Clusters</span><b id="stat-cores">-</b></div>
-      <div class="stat"><span>Governor</span><b id="stat-gov">-</b></div>
-      <div class="stat"><span>CPU clock</span><b id="stat-cpu">-</b></div>
-    </section>
-
     <section class="panel">
       <div class="panel-head">
         <h2>CPU Clusters</h2>
         <span class="hint">cores sharing one clock; changing a control applies instantly</span>
       </div>
       <div class="grid" id="cores"></div>
-    </section>
-  </section>
-
-  <section class="page" id="page-gpu" hidden>
-    <section class="stats">
-      <div class="stat"><span>Governor</span><b id="gstat-gov">-</b></div>
-      <div class="stat"><span>GPU clock</span><b id="gstat-clock">-</b></div>
-      <div class="stat"><span>Levels</span><b id="gstat-levels">-</b></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head">
-        <h2>GPU</h2>
-        <span class="hint">governor &amp; frequency control</span>
-      </div>
-      <div class="grid" id="gpu"></div>
-      <p class="empty" id="gpu-empty" hidden>No GPU devfreq device found.</p>
     </section>
   </section>
 </main>

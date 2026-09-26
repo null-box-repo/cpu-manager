@@ -8,24 +8,16 @@
  *   ./cputuner --set min_freq <khz>    [--cluster N]
  *   ./cputuner --set max_freq <khz>    [--cluster N]
  *
- *   ./cputuner --list gpu_governor
- *   ./cputuner --list gpu_freq
- *   ./cputuner --set gpu_governor <name>
- *   ./cputuner --set gpu_min_freq <hz>
- *   ./cputuner --set gpu_max_freq <hz>
- *
  * No --cluster: applies to all clusters.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <dirent.h>
 #include <unistd.h>
 
 #define CPU_SYS_PATH "/sys/devices/system/cpu"
-#define DEVFREQ_PATH "/sys/class/devfreq"
 #define MAX_LINE 512
 #define MAX_CORES 64
 #define ALL (-1)
@@ -204,83 +196,6 @@ static int set_bound_freq(const char *which, int cluster_idx, const char *khz) {
     return ok ? 0 : -1;
 }
 
-/* ================= GPU ================= */
-
-static int find_gpu_devfreq(char *out, size_t size) {
-    if (access("/sys/class/kgsl/kgsl-3d0/devfreq", F_OK) == 0) {
-        snprintf(out, size, "/sys/class/kgsl/kgsl-3d0/devfreq");
-        return 0;
-    }
-    DIR *dir = opendir(DEVFREQ_PATH);
-    if (!dir) return -1;
-
-    struct dirent *entry;
-    char fallback[256] = "";
-    while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_name[0] == '.') continue;
-        char lower[128];
-        size_t j = 0;
-        for (; entry->d_name[j] && j < sizeof(lower) - 1; j++)
-            lower[j] = (char)tolower((unsigned char)entry->d_name[j]);
-        lower[j] = 0;
-
-        if (strstr(lower, "gpu") || strstr(lower, "mali") ||
-            strstr(lower, "kgsl") || strstr(lower, "adreno")) {
-            snprintf(out, size, "%s/%s", DEVFREQ_PATH, entry->d_name);
-            closedir(dir);
-            return 0;
-        }
-        if (fallback[0] == 0)
-            snprintf(fallback, sizeof(fallback), "%s/%s", DEVFREQ_PATH, entry->d_name);
-    }
-    closedir(dir);
-
-    if (fallback[0] != 0) {
-        fprintf(stderr, "warning: no clear GPU match, using first devfreq device: %s\n", fallback);
-        snprintf(out, size, "%s", fallback);
-        return 0;
-    }
-    return -1;
-}
-
-static void list_gpu_governor(void) {
-    char base[256], path[300], buf[MAX_LINE];
-    if (find_gpu_devfreq(base, sizeof(base)) != 0) { fprintf(stderr, "could not find GPU devfreq path\n"); return; }
-    snprintf(path, sizeof(path), "%s/available_governors", base);
-    if (read_file(path, buf, sizeof(buf)) == 0) printf("GPU available governors: %s\n", buf);
-    snprintf(path, sizeof(path), "%s/governor", base);
-    if (read_file(path, buf, sizeof(buf)) == 0) printf("GPU governor: %s\n", buf);
-}
-
-static void list_gpu_freq(void) {
-    char base[256], path[300], buf[MAX_LINE];
-    if (find_gpu_devfreq(base, sizeof(base)) != 0) { fprintf(stderr, "could not find GPU devfreq path\n"); return; }
-    snprintf(path, sizeof(path), "%s/available_frequencies", base);
-    if (read_file(path, buf, sizeof(buf)) == 0) printf("GPU available frequencies (Hz): %s\n", buf);
-    snprintf(path, sizeof(path), "%s/min_freq", base);
-    if (read_file(path, buf, sizeof(buf)) == 0) printf("GPU min: %s Hz\n", buf);
-    snprintf(path, sizeof(path), "%s/max_freq", base);
-    if (read_file(path, buf, sizeof(buf)) == 0) printf("GPU max: %s Hz\n", buf);
-    snprintf(path, sizeof(path), "%s/cur_freq", base);
-    if (read_file(path, buf, sizeof(buf)) == 0) printf("GPU cur: %s Hz\n", buf);
-}
-
-static int set_gpu_governor(const char *governor) {
-    char base[256], path[300];
-    if (find_gpu_devfreq(base, sizeof(base)) != 0) { fprintf(stderr, "could not find GPU devfreq path\n"); return -1; }
-    snprintf(path, sizeof(path), "%s/governor", base);
-    if (write_file(path, governor) == 0) { printf("GPU -> governor: %s\n", governor); return 0; }
-    return -1;
-}
-
-static int set_gpu_bound_freq(const char *which, const char *val) {
-    char base[256], path[300];
-    if (find_gpu_devfreq(base, sizeof(base)) != 0) { fprintf(stderr, "could not find GPU devfreq path\n"); return -1; }
-    snprintf(path, sizeof(path), "%s/%s_freq", base, which);
-    if (write_file(path, val) == 0) { printf("GPU -> %s_freq: %s Hz\n", which, val); return 0; }
-    return -1;
-}
-
 /* ================= CLI ================= */
 
 static void print_usage(const char *prog) {
@@ -289,12 +204,6 @@ static void print_usage(const char *prog) {
     printf("  %s --set governor <name> [--cluster N]\n", prog);
     printf("  %s --set min_freq <khz> [--cluster N]\n", prog);
     printf("  %s --set max_freq <khz> [--cluster N]\n", prog);
-    printf("GPU:\n");
-    printf("  %s --list gpu_governor\n", prog);
-    printf("  %s --list gpu_freq\n", prog);
-    printf("  %s --set gpu_governor <name>\n", prog);
-    printf("  %s --set gpu_min_freq <hz>\n", prog);
-    printf("  %s --set gpu_max_freq <hz>\n", prog);
     printf("* no --cluster: applies to all clusters.\n");
 }
 
@@ -313,10 +222,6 @@ int main(int argc, char *argv[]) {
     if (strcmp(argv[1], "--list") == 0) {
         if (strcmp(argv[2], "clusters") == 0) {
             list_clusters();
-        } else if (strcmp(argv[2], "gpu_governor") == 0) {
-            list_gpu_governor();
-        } else if (strcmp(argv[2], "gpu_freq") == 0) {
-            list_gpu_freq();
         } else { fprintf(stderr, "unknown option: %s\n", argv[2]); return 1; }
     } else if (strcmp(argv[1], "--set") == 0) {
         if (argc < 4) { print_usage(argv[0]); return 1; }
@@ -324,9 +229,6 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[2], "governor") == 0) return set_governor(cluster, argv[3]) == 0 ? 0 : 1;
         else if (strcmp(argv[2], "min_freq") == 0) return set_bound_freq("min", cluster, argv[3]) == 0 ? 0 : 1;
         else if (strcmp(argv[2], "max_freq") == 0) return set_bound_freq("max", cluster, argv[3]) == 0 ? 0 : 1;
-        else if (strcmp(argv[2], "gpu_governor") == 0) return set_gpu_governor(argv[3]) == 0 ? 0 : 1;
-        else if (strcmp(argv[2], "gpu_min_freq") == 0) return set_gpu_bound_freq("min", argv[3]) == 0 ? 0 : 1;
-        else if (strcmp(argv[2], "gpu_max_freq") == 0) return set_gpu_bound_freq("max", argv[3]) == 0 ? 0 : 1;
         else { fprintf(stderr, "unknown option: %s\n", argv[2]); return 1; }
     } else { print_usage(argv[0]); return 1; }
 
